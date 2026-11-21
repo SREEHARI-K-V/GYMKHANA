@@ -152,4 +152,5 @@ gymkhana/
 - [x] **Notifications**: In-app bell dropdown with live unread badge count.
 - [x] **Admin Operations**: User CRUD, Trainer CRUD, Plan CRUD, Branch CRUD, Activity Logs, CSV Exports.
 #   G Y M K H A N A  
+ #   G Y M K H A N A  
  

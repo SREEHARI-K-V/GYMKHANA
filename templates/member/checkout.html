@@ -1,0 +1,267 @@
+{% extends 'base.html' %}
+
+{% block title %}Online Checkout — GYMKHANA{% endblock %}
+{% block page_title %}Secure Online Payment Gateway{% endblock %}
+
+{% block content %}
+<div class="row g-4 justify-content-center mb-4">
+    <!-- Left Column: Payment Methods Form -->
+    <div class="col-lg-7">
+        <div class="card border-0 shadow-sm rounded-4 p-4">
+            <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-3">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-shield-lock-fill text-success fs-3"></i>
+                    <div>
+                        <h5 class="fw-bold m-0">256-Bit SSL Encrypted Checkout</h5>
+                        <small class="text-muted">Choose your preferred online payment method</small>
+                    </div>
+                </div>
+                <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1">
+                    <i class="bi bi-patch-check-fill me-1"></i> Verified Merchant
+                </span>
+            </div>
+
+            <!-- Payment Method Navigation Tabs -->
+            <ul class="nav nav-pills nav-fill mb-4 p-1 bg-light rounded-3" id="paymentTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active fw-bold" id="upi-tab" data-bs-toggle="pill" data-bs-target="#upi-pane" type="button" role="tab">
+                        <i class="bi bi-qr-code-scan me-1"></i> UPI / QR
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link fw-bold" id="card-tab" data-bs-toggle="pill" data-bs-target="#card-pane" type="button" role="tab">
+                        <i class="bi bi-credit-card-2-front-fill me-1"></i> Card
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link fw-bold" id="netbanking-tab" data-bs-toggle="pill" data-bs-target="#netbanking-pane" type="button" role="tab">
+                        <i class="bi bi-bank2 me-1"></i> Net Banking
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link fw-bold" id="wallet-tab" data-bs-toggle="pill" data-bs-target="#wallet-pane" type="button" role="tab">
+                        <i class="bi bi-wallet2 me-1"></i> Quick Pay
+                    </button>
+                </li>
+            </ul>
+
+            <!-- Unified Payment Form -->
+            <form action="{{ url_for('subscription.process_payment') }}" method="POST" id="checkoutForm">
+                <input type="hidden" name="plan_id" value="{{ plan.id }}">
+                <input type="hidden" name="payment_method" id="selectedPaymentMethod" value="UPI">
+
+                <div class="tab-content" id="paymentTabsContent">
+                    <!-- UPI Tab -->
+                    <div class="tab-pane fade show active" id="upi-pane" role="tabpanel">
+                        <div class="p-3 bg-light rounded-3 mb-3 text-center">
+                            <div class="mb-2">
+                                <span class="badge bg-danger text-white px-3 py-1 rounded-pill mb-2">Instant UPI QR Code</span>
+                                <div class="bg-white p-3 d-inline-block rounded-3 shadow-sm border my-2">
+                                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=upi://pay?pa=gymkhana@icici&pn=GymkhanaFitness&am={{ total_payable }}&cu=INR" 
+                                         alt="UPI QR Code" class="img-fluid" style="width: 140px; height: 140px;">
+                                </div>
+                                <div class="small text-muted">Scan using Google Pay, PhonePe, Paytm, or BHIM UPI</div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Or Enter Virtual Payment Address (UPI ID)</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-white"><i class="bi bi-at text-danger"></i></span>
+                                <input type="text" class="form-control" name="upi_id" placeholder="e.g. yourname@okhdfcbank" value="{{ user.email.split('@')[0] }}@upi">
+                            </div>
+                            <small class="text-muted">A payment request will be simulated and confirmed instantly.</small>
+                        </div>
+                    </div>
+
+                    <!-- Card Tab -->
+                    <div class="tab-pane fade" id="card-pane" role="tabpanel">
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Card Number</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-white"><i class="bi bi-credit-card text-danger"></i></span>
+                                <input type="text" class="form-control" maxlength="19" placeholder="4532 •••• •••• 8921" value="4532 9801 2345 8921">
+                                <span class="input-group-text bg-white text-muted"><i class="bi bi-lock-fill"></i></span>
+                            </div>
+                        </div>
+
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label class="form-label fw-semibold">Expiry Date</label>
+                                <input type="text" class="form-control" placeholder="MM/YY" maxlength="5" value="12/28">
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label fw-semibold">CVV / CVC</label>
+                                <input type="password" class="form-control" placeholder="•••" maxlength="3" value="789">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Cardholder Name</label>
+                            <input type="text" class="form-control" placeholder="Full name as printed on card" value="{{ user.name }}">
+                        </div>
+                    </div>
+
+                    <!-- Net Banking Tab -->
+                    <div class="tab-pane fade" id="netbanking-pane" role="tabpanel">
+                        <label class="form-label fw-semibold mb-2">Select Popular Bank</label>
+                        <div class="row g-2 mb-3">
+                            <div class="col-4">
+                                <div class="border rounded-3 p-2 text-center bank-select active-bank" onclick="selectBank(this, 'State Bank of India')">
+                                    <i class="bi bi-bank fs-4 text-primary d-block"></i>
+                                    <small class="fw-semibold">SBI</small>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="border rounded-3 p-2 text-center bank-select" onclick="selectBank(this, 'HDFC Bank')">
+                                    <i class="bi bi-bank fs-4 text-danger d-block"></i>
+                                    <small class="fw-semibold">HDFC</small>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="border rounded-3 p-2 text-center bank-select" onclick="selectBank(this, 'ICICI Bank')">
+                                    <i class="bi bi-bank fs-4 text-warning d-block"></i>
+                                    <small class="fw-semibold">ICICI</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">All Other Banks</label>
+                            <select class="form-select" id="bankDropdown" onchange="document.getElementById('selectedPaymentMethod').value = 'Net Banking: ' + this.value">
+                                <option value="Axis Bank">Axis Bank</option>
+                                <option value="Kotak Mahindra Bank">Kotak Mahindra Bank</option>
+                                <option value="Punjab National Bank">Punjab National Bank</option>
+                                <option value="Bank of Baroda">Bank of Baroda</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Quick Pay Tab -->
+                    <div class="tab-pane fade" id="wallet-pane" role="tabpanel">
+                        <div class="card bg-danger bg-opacity-10 border-0 p-4 text-center rounded-4 mb-3">
+                            <i class="bi bi-lightning-charge-fill text-danger display-4 mb-2"></i>
+                            <h5 class="fw-bold">Gymkhana 1-Click Fast Pay</h5>
+                            <p class="text-secondary small mb-0">Instant checkout simulated directly with MCA sandbox gateway. No OTP required.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pay Button -->
+                <div class="d-grid mt-4">
+                    <button type="submit" class="btn btn-danger btn-lg fw-bold shadow-sm py-3" id="paySubmitBtn">
+                        <i class="bi bi-lock-fill me-2"></i> Pay ₹{{ "%.2f"|format(total_payable) }} Securely
+                    </button>
+                    <small class="text-center text-muted mt-2">
+                        <i class="bi bi-info-circle me-1"></i> Safe payment sandbox simulation. Receipt will be generated immediately.
+                    </small>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Right Column: Order Summary & Renewal Info Card -->
+    <div class="col-lg-5">
+        <div class="card border-0 shadow-sm rounded-4 p-4 mb-4">
+            <h5 class="fw-bold mb-3"><i class="bi bi-receipt text-danger me-2"></i> Order Summary</h5>
+
+            <div class="p-3 bg-light rounded-3 mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <h6 class="fw-bold text-dark m-0">{{ plan.name }}</h6>
+                    <span class="badge bg-danger">{{ plan.duration_months }} Month{% if plan.duration_months > 1 %}s{% endif %}</span>
+                </div>
+                <small class="text-muted">{{ plan.description }}</small>
+            </div>
+
+            <!-- Intelligent Renewal Status Alert -->
+            {% if is_renewal %}
+                <div class="alert alert-success border-0 rounded-3 mb-3 p-3">
+                    <div class="d-flex gap-2">
+                        <i class="bi bi-clock-history fs-5 text-success"></i>
+                        <div>
+                            <strong class="d-block text-success">Seamless Renewal Detected!</strong>
+                            <small class="text-dark">
+                                Your current plan ends on <strong>{{ current_expiry }}</strong>. 
+                                Renewing now extends your coverage until <strong>{{ new_expiry }}</strong>. 
+                                <em>All your remaining days are preserved!</em>
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            {% else %}
+                <div class="alert alert-info border-0 rounded-3 mb-3 p-3">
+                    <div class="d-flex gap-2">
+                        <i class="bi bi-calendar-check fs-5 text-info"></i>
+                        <div>
+                            <strong class="d-block text-info">New Plan Activation</strong>
+                            <small class="text-dark">Valid from <strong>Today</strong> until <strong>{{ new_expiry }}</strong>.</small>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+
+            <!-- Pricing Breakdown -->
+            <ul class="list-group list-group-flush border-0 mb-3">
+                <li class="list-group-item px-0 py-2 d-flex justify-content-between border-0">
+                    <span class="text-secondary">Base Plan Price</span>
+                    <span class="fw-semibold text-dark">₹{{ "%.2f"|format(base_amount) }}</span>
+                </li>
+                <li class="list-group-item px-0 py-2 d-flex justify-content-between border-0">
+                    <span class="text-secondary">GST (18%)</span>
+                    <span class="fw-semibold text-dark">₹{{ "%.2f"|format(gst_amount) }}</span>
+                </li>
+                <li class="list-group-item px-0 py-3 d-flex justify-content-between border-top border-2">
+                    <strong class="fs-5 text-dark">Total Amount Due</strong>
+                    <strong class="fs-4 text-danger fw-extrabold">₹{{ "%.2f"|format(total_payable) }}</strong>
+                </li>
+            </ul>
+
+            <!-- Included Plan Benefits -->
+            <div class="border-top pt-3">
+                <h6 class="fw-bold small text-muted text-uppercase tracking-wider mb-2">What's Included:</h6>
+                <ul class="list-unstyled small text-secondary mb-0">
+                    {% if plan.benefits %}
+                        {% for benefit in plan.benefits.split('\n') %}
+                            <li class="mb-1"><i class="bi bi-check-circle-fill text-success me-2"></i> {{ benefit }}</li>
+                        {% endfor %}
+                    {% else %}
+                        <li class="mb-1"><i class="bi bi-check-circle-fill text-success me-2"></i> Full Gym Floor Access</li>
+                        <li class="mb-1"><i class="bi bi-check-circle-fill text-success me-2"></i> Certified Trainer Consultation</li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+
+        <div class="text-center">
+            <a href="{{ url_for('subscription.my_membership') }}" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+                <i class="bi bi-arrow-left me-1"></i> Back to Membership Plans
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Tab switching handler to sync payment method hidden input
+    document.querySelectorAll('#paymentTabs button').forEach(button => {
+        button.addEventListener('shown.bs.tab', event => {
+            const target = event.target.id;
+            const methodInput = document.getElementById('selectedPaymentMethod');
+            if (target === 'upi-tab') {
+                methodInput.value = 'UPI';
+            } else if (target === 'card-tab') {
+                methodInput.value = 'Credit / Debit Card';
+            } else if (target === 'netbanking-tab') {
+                methodInput.value = 'Net Banking: State Bank of India';
+            } else if (target === 'wallet-tab') {
+                methodInput.value = 'Gymkhana Quick Pay';
+            }
+        });
+    });
+
+    function selectBank(elem, bankName) {
+        document.querySelectorAll('.bank-select').forEach(b => b.classList.remove('border-danger', 'bg-danger-subtle'));
+        elem.classList.add('border-danger', 'bg-danger-subtle');
+        document.getElementById('selectedPaymentMethod').value = 'Net Banking: ' + bankName;
+    }
+</script>
+{% endblock %}

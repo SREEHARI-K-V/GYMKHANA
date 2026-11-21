@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+
+{% block title %}Platform Feedback — GYMKHANA{% endblock %}
+{% block page_title %}Trainer Webpage Review & Feedback{% endblock %}
+
+{% block content %}
+<div class="row g-4 mb-4">
+    <!-- Webpage Review Form for Trainer -->
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
+            <div class="d-flex align-items-center gap-2 mb-3">
+                <div class="stat-icon-wrapper bg-danger bg-opacity-10 text-danger">
+                    <i class="bi bi-chat-heart-fill"></i>
+                </div>
+                <div>
+                    <h5 class="fw-bold m-0">Review Gymkhana Platform & Facilities</h5>
+                    <small class="text-muted">As a certified trainer, your feedback shapes our training environment and tools.</small>
+                </div>
+            </div>
+
+            <form action="{{ url_for('review.submit_webpage_review') }}" method="POST">
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Overall Rating for Gymkhana</label>
+                    <select name="rating" class="form-select form-select-lg" required>
+                        <option value="5" selected>⭐⭐⭐⭐⭐ (5/5) — Excellent</option>
+                        <option value="4">⭐⭐⭐⭐ (4/5) — Very Good</option>
+                        <option value="3">⭐⭐⭐ (3/5) — Good</option>
+                        <option value="2">⭐⭐ (2/5) — Fair</option>
+                        <option value="1">⭐ (1/5) — Poor</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Review Title</label>
+                    <input type="text" name="title" class="form-control" placeholder="e.g. Great coaching ecosystem and modern equipment" required>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Feedback & Suggestions</label>
+                    <textarea name="comment" rows="4" class="form-control" placeholder="Share your experience with the gym equipment, member management system, or facilities..." required></textarea>
+                </div>
+
+                <div class="d-flex align-items-center justify-content-between pt-2">
+                    <small class="text-muted"><i class="bi bi-shield-check me-1"></i> Reviewed by Admin before publishing.</small>
+                    <button type="submit" class="btn btn-danger fw-bold px-4">
+                        <i class="bi bi-send-fill me-1"></i> Submit Review
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Quick Trainer Stats & Direct Link -->
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm rounded-4 p-4 h-100 bg-light">
+            <h5 class="fw-bold text-dark mb-3"><i class="bi bi-star-half text-warning me-2"></i> Member Feedback About You</h5>
+            <p class="text-secondary small">Members can rate your sessions and leave feedback. All approved feedback is visible on your profile.</p>
+            
+            <div class="p-3 bg-white rounded-3 shadow-sm mb-4">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <h6 class="fw-bold mb-1">View Your Member Ratings</h6>
+                        <small class="text-muted">Check out student testimonials, stars, and feedback.</small>
+                    </div>
+                    <a href="{{ url_for('review.trainer_ratings') }}" class="btn btn-outline-danger fw-bold btn-sm">
+                        <i class="bi bi-arrow-right-circle me-1"></i> View Ratings
+                    </a>
+                </div>
+            </div>
+
+            <div class="alert alert-info border-0 shadow-sm mb-0">
+                <i class="bi bi-info-circle-fill me-2"></i>
+                <strong>Notice:</strong> All submitted webpage reviews are moderated by system administrators to maintain high standards of community content.
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Trainer Review History -->
+<div class="card border-0 shadow-sm rounded-4 p-4">
+    <h5 class="fw-bold mb-3"><i class="bi bi-clock-history text-danger me-2"></i> My Submitted Webpage Reviews</h5>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle table-custom m-0">
+            <thead>
+                <tr>
+                    <th>Rating</th>
+                    <th>Title & Feedback</th>
+                    <th>Submitted Date</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if my_reviews %}
+                    {% for rev in my_reviews %}
+                        <tr>
+                            <td>
+                                <span class="text-warning fw-bold">
+                                    {% for i in range(rev.rating) %}★{% endfor %}
+                                </span>
+                                <small class="text-muted">({{ rev.rating }}/5)</small>
+                            </td>
+                            <td>
+                                <strong class="d-block text-dark small">{{ rev.title }}</strong>
+                                <span class="text-secondary small">{{ rev.comment }}</span>
+                            </td>
+                            <td class="text-muted small">{{ rev.created_at }}</td>
+                            <td>
+                                {% if rev.status == 'approved' %}
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1">
+                                        <i class="bi bi-check-circle-fill me-1"></i> Approved & Live
+                                    </span>
+                                {% elif rev.status == 'rejected' %}
+                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-1">
+                                        <i class="bi bi-x-circle-fill me-1"></i> Declined
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-3 py-1">
+                                        <i class="bi bi-hourglass-split me-1"></i> Awaiting Admin
+                                    </span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="4" class="text-center py-4 text-muted">You haven't submitted any platform reviews yet.</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,195 @@
+{% extends 'base.html' %}
+
+{% block title %}Reviews & Feedback — GYMKHANA{% endblock %}
+{% block page_title %}Member Reviews & Feedback{% endblock %}
+
+{% block content %}
+<div class="row g-4 mb-4">
+    <!-- Webpage / Platform Review Form -->
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
+            <div class="d-flex align-items-center gap-2 mb-3">
+                <div class="stat-icon-wrapper bg-danger bg-opacity-10 text-danger">
+                    <i class="bi bi-star-fill"></i>
+                </div>
+                <div>
+                    <h5 class="fw-bold m-0">Review Gymkhana Webpage & Facilities</h5>
+                    <small class="text-muted">Share your experience with our equipment, app, and gym branches.</small>
+                </div>
+            </div>
+
+            <form action="{{ url_for('review.submit_webpage_review') }}" method="POST">
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Overall Rating</label>
+                    <div class="rating-stars-input d-flex gap-2 align-items-center">
+                        <select name="rating" class="form-select form-select-lg" required>
+                            <option value="5" selected>⭐⭐⭐⭐⭐ (5/5) — Excellent</option>
+                            <option value="4">⭐⭐⭐⭐ (4/5) — Very Good</option>
+                            <option value="3">⭐⭐⭐ (3/5) — Good / Average</option>
+                            <option value="2">⭐⭐ (2/5) — Fair</option>
+                            <option value="1">⭐ (1/5) — Poor</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Headline / Summary</label>
+                    <input type="text" name="title" class="form-control" placeholder="e.g. Clean facilities, great workout experience!" required>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Your Detailed Feedback</label>
+                    <textarea name="comment" rows="4" class="form-control" placeholder="Tell us what you like or how we can improve Gymkhana..." required></textarea>
+                </div>
+
+                <div class="d-flex align-items-center justify-content-between pt-2">
+                    <small class="text-muted"><i class="bi bi-shield-check me-1"></i> Reviews are moderated by Admin.</small>
+                    <button type="submit" class="btn btn-danger fw-bold px-4">
+                        <i class="bi bi-send-fill me-1"></i> Submit Webpage Review
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Rate Trainer Form -->
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
+            <div class="d-flex align-items-center gap-2 mb-3">
+                <div class="stat-icon-wrapper bg-primary bg-opacity-10 text-primary">
+                    <i class="bi bi-person-check-fill"></i>
+                </div>
+                <div>
+                    <h5 class="fw-bold m-0">Rate & Review Your Trainer</h5>
+                    <small class="text-muted">Acknowledge your coach's guidance and workout/diet support.</small>
+                </div>
+            </div>
+
+            <form action="{{ url_for('review.submit_trainer_review') }}" method="POST">
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Select Certified Trainer</label>
+                    <select name="trainer_id" class="form-select" required>
+                        <option value="" disabled selected>-- Choose your trainer --</option>
+                        {% for trainer in trainers_list %}
+                            <option value="{{ trainer.id }}">
+                                {{ trainer.name }} — {{ trainer.specialization or 'Fitness Trainer' }} ({{ trainer.experience or 'Experienced' }})
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Trainer Rating</label>
+                    <select name="rating" class="form-select form-select-lg" required>
+                        <option value="5" selected>⭐⭐⭐⭐⭐ (5/5) — Outstanding Coach</option>
+                        <option value="4">⭐⭐⭐⭐ (4/5) — Great Support</option>
+                        <option value="3">⭐⭐⭐ (3/5) — Satisfactory</option>
+                        <option value="2">⭐⭐ (2/5) — Needs Improvement</option>
+                        <option value="1">⭐ (1/5) — Unsatisfied</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Review Title</label>
+                    <input type="text" name="title" class="form-control" placeholder="e.g. Alex pushed my strength limits safely!">
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Trainer Feedback & Experience</label>
+                    <textarea name="comment" rows="3" class="form-control" placeholder="How did this trainer help your fitness and nutrition goals?" required></textarea>
+                </div>
+
+                <div class="d-flex align-items-center justify-content-between pt-2">
+                    <small class="text-muted"><i class="bi bi-shield-check me-1"></i> Awaiting Admin approval.</small>
+                    <button type="submit" class="btn btn-primary fw-bold px-4">
+                        <i class="bi bi-award-fill me-1"></i> Submit Trainer Review
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- My Review History -->
+<div class="card border-0 shadow-sm rounded-4 p-4">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <h5 class="fw-bold m-0"><i class="bi bi-clock-history text-danger me-2"></i> My Submitted Reviews & Status</h5>
+        <span class="badge bg-light text-dark border">{{ my_reviews|length }} Submitted</span>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-hover align-middle table-custom m-0">
+            <thead>
+                <tr>
+                    <th>Type</th>
+                    <th>Target / Subject</th>
+                    <th>Rating</th>
+                    <th>Feedback / Comment</th>
+                    <th>Date</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if my_reviews %}
+                    {% for rev in my_reviews %}
+                        <tr>
+                            <td>
+                                {% if rev.review_type == 'webpage' %}
+                                    <span class="badge bg-danger bg-opacity-10 text-danger border border-danger-subtle">
+                                        <i class="bi bi-globe me-1"></i> Webpage
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-primary bg-opacity-10 text-primary border border-primary-subtle">
+                                        <i class="bi bi-person-badge me-1"></i> Trainer
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td class="fw-semibold">
+                                {% if rev.review_type == 'webpage' %}
+                                    Gymkhana Platform
+                                {% else %}
+                                    <i class="bi bi-person-check text-primary me-1"></i> {{ rev.trainer_name or 'Trainer' }}
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="text-warning fw-bold">
+                                    {% for i in range(rev.rating) %}★{% endfor %}
+                                </span>
+                                <small class="text-muted">({{ rev.rating }}/5)</small>
+                            </td>
+                            <td>
+                                {% if rev.title %}
+                                    <strong class="d-block text-dark small">{{ rev.title }}</strong>
+                                {% endif %}
+                                <span class="text-secondary small">{{ rev.comment }}</span>
+                            </td>
+                            <td class="text-muted small">{{ rev.created_at }}</td>
+                            <td>
+                                {% if rev.status == 'approved' %}
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1">
+                                        <i class="bi bi-check-circle-fill me-1"></i> Approved
+                                    </span>
+                                {% elif rev.status == 'rejected' %}
+                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-1">
+                                        <i class="bi bi-x-circle-fill me-1"></i> Rejected
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-3 py-1">
+                                        <i class="bi bi-hourglass-split me-1"></i> Pending Approval
+                                    </span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center py-4 text-muted">
+                            You have not submitted any reviews yet. Use the forms above to share your feedback!
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

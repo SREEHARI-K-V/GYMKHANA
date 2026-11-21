@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+
+{% block title %}My Member Reviews — GYMKHANA{% endblock %}
+{% block page_title %}Trainer Ratings & Student Feedback{% endblock %}
+
+{% block content %}
+<div class="row g-4 mb-4">
+    <!-- Overall Rating KPI Card -->
+    <div class="col-md-5">
+        <div class="card border-0 shadow-sm rounded-4 p-4 text-center h-100 bg-white">
+            <h6 class="text-secondary fw-semibold">Overall Coaching Rating</h6>
+            <div class="display-3 fw-extrabold text-danger my-2">{{ "%.1f"|format(avg_rating) }}</div>
+            <div class="text-warning fs-4 mb-2">
+                {% set full_stars = avg_rating|round(0, 'floor')|int %}
+                {% for i in range(full_stars) %}★{% endfor %}
+                {% for i in range(5 - full_stars) %}☆{% endfor %}
+            </div>
+            <p class="text-muted small mb-0">Based on {{ total_reviews }} approved member review{% if total_reviews != 1 %}s{% endif %}</p>
+        </div>
+    </div>
+
+    <!-- Rating Breakdown Progress Bars -->
+    <div class="col-md-7">
+        <div class="card border-0 shadow-sm rounded-4 p-4 h-100 bg-white">
+            <h6 class="text-secondary fw-semibold mb-3">Rating Breakdown</h6>
+            {% for star in [5, 4, 3, 2, 1] %}
+                {% set count = star_counts.get(star, 0) %}
+                {% set pct = ((count / total_reviews * 100) if total_reviews > 0 else 0)|round|int %}
+                <div class="d-flex align-items-center gap-3 mb-2">
+                    <span class="small fw-bold text-secondary" style="width: 45px;">{{ star }} ★</span>
+                    <div class="progress flex-grow-1" style="height: 10px;">
+                        <div class="progress-bar bg-warning" role="progressbar" style="width: {{ pct }}%;"></div>
+                    </div>
+                    <span class="small text-muted" style="width: 50px;">{{ count }} ({{ pct }}%)</span>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Reviews List -->
+<div class="card border-0 shadow-sm rounded-4 p-4">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <h5 class="fw-bold m-0"><i class="bi bi-chat-square-quote text-danger me-2"></i> Verified Member Testimonials</h5>
+        <span class="badge bg-light text-dark border">{{ total_reviews }} Total</span>
+    </div>
+
+    {% if reviews %}
+        <div class="row g-3">
+            {% for r in reviews %}
+                <div class="col-md-6">
+                    <div class="card bg-light border-0 rounded-4 p-4 h-100">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="rounded-circle bg-danger text-white d-flex align-items-center justify-content-center fw-bold" style="width: 40px; height: 40px;">
+                                    {{ r.member_name[0] | upper }}
+                                </div>
+                                <div>
+                                    <h6 class="fw-bold m-0">{{ r.member_name }}</h6>
+                                    <small class="text-muted"><i class="bi bi-patch-check-fill text-primary"></i> Verified Member</small>
+                                </div>
+                            </div>
+                            <span class="text-warning fw-bold">
+                                {% for i in range(r.rating) %}★{% endfor %}
+                            </span>
+                        </div>
+                        {% if r.title %}
+                            <h6 class="fw-bold text-dark mt-2 mb-1">{{ r.title }}</h6>
+                        {% endif %}
+                        <p class="text-secondary small mb-3 flex-grow-1">"{{ r.comment }}"</p>
+                        <div class="border-top pt-2 d-flex justify-content-between text-muted extra-small">
+                            <span><i class="bi bi-calendar3 me-1"></i> {{ r.created_at }}</span>
+                            <span class="badge bg-success-subtle text-success border border-success-subtle">Approved</span>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="text-center py-5 text-muted">
+            <i class="bi bi-star display-4 text-secondary opacity-50 d-block mb-3"></i>
+            <h6 class="fw-bold">No member reviews yet</h6>
+            <p class="small text-secondary">When your assigned members rate your training sessions, their approved feedback will show here.</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

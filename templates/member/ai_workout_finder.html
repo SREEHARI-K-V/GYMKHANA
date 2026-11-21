@@ -1,0 +1,245 @@
+{% extends 'base.html' %}
+
+{% block title %}AI Workout Finder — GYMKHANA{% endblock %}
+{% block page_title %}AI Workout Finder & Fitness Coach{% endblock %}
+
+{% block content %}
+<!-- AI Header Banner -->
+<div class="card border-0 bg-dark text-white rounded-4 p-4 mb-4 shadow-sm position-relative overflow-hidden">
+    <div class="row align-items-center position-relative z-1">
+        <div class="col-lg-8">
+            <span class="badge bg-danger text-white mb-2 px-3 py-1 rounded-pill">
+                <i class="bi bi-robot me-1"></i> AI POWERED FITNESS ENGINE
+            </span>
+            <h2 class="fw-bold mb-2">Find Your Perfect Workout in Seconds ⚡</h2>
+            <p class="text-light opacity-75 mb-0">Describe what you want to train, how much time you have, or what equipment you have on hand. Our AI assistant designs an optimal workout routine tailored to your goals.</p>
+        </div>
+        <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
+            <a href="{{ url_for('workout.my_workout') }}" class="btn btn-outline-light rounded-pill px-4">
+                <i class="bi bi-calendar-check me-1"></i> View Assigned Plan
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Search & Smart Filters Card -->
+<div class="card border-0 shadow-sm rounded-4 p-4 mb-4">
+    <!-- Natural Language Query Bar -->
+    <div class="mb-3">
+        <label class="form-label fw-bold"><i class="bi bi-search text-danger me-1"></i> What would you like to train today?</label>
+        <div class="input-group input-group-lg">
+            <input type="text" id="aiQueryInput" class="form-control" 
+                   placeholder="e.g. 30-minute dumbbell workout for chest and biceps, or low-impact cardio for fat loss...">
+            <button class="btn btn-danger fw-bold px-4" type="button" id="aiSearchBtn" onclick="runAiFinder()">
+                <i class="bi bi-magic me-1"></i> Ask AI Coach
+            </button>
+        </div>
+    </div>
+
+    <!-- Quick Preset Buttons -->
+    <div class="mb-4">
+        <small class="text-muted fw-semibold d-block mb-2">Popular AI Workout Presets:</small>
+        <div class="d-flex flex-wrap gap-2">
+            <button class="btn btn-sm btn-outline-secondary rounded-pill" onclick="quickPreset('30-minute dumbbell workout for chest and triceps')">
+                🔥 Chest & Triceps Pump
+            </button>
+            <button class="btn btn-sm btn-outline-secondary rounded-pill" onclick="quickPreset('Deadlift and pull-up back hypertrophy with biceps')">
+                💪 Back & Biceps Width
+            </button>
+            <button class="btn btn-sm btn-outline-secondary rounded-pill" onclick="quickPreset('Leg day quad and glute strength with squats and lunges')">
+                🦵 Quad & Glute Power
+            </button>
+            <button class="btn btn-sm btn-outline-secondary rounded-pill" onclick="quickPreset('Core and six pack abs workout with planks and twists')">
+                🛡️ Core & Abs Definition
+            </button>
+            <button class="btn btn-sm btn-outline-secondary rounded-pill" onclick="quickPreset('High-intensity cardio treadmill intervals and mountain climbers for fat loss')">
+                ⚡ Fat Burn Cardio HIIT
+            </button>
+            <button class="btn btn-sm btn-outline-secondary rounded-pill" onclick="quickPreset('Bodyweight calisthenics push-ups and pull-ups')">
+                🏡 Calisthenics Only
+            </button>
+        </div>
+    </div>
+
+    <!-- Filter Chips Row -->
+    <div class="row g-3 pt-3 border-top">
+        <div class="col-md-4">
+            <label class="form-label small fw-semibold text-secondary">Target Muscle Group</label>
+            <select class="form-select form-select-sm" id="muscleGroupSelect" onchange="runAiFinder()">
+                <option value="all">All Muscle Groups</option>
+                {% for m in all_muscles %}
+                    <option value="{{ m|lower }}">{{ m }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label small fw-semibold text-secondary">Equipment Available</label>
+            <select class="form-select form-select-sm" id="equipmentSelect" onchange="runAiFinder()">
+                <option value="all">Any Equipment (Full Gym)</option>
+                <option value="Dumbbells">Dumbbells Only</option>
+                <option value="Barbell">Barbell Lifts</option>
+                <option value="Bodyweight">Bodyweight / Calisthenics</option>
+                <option value="Cable Machine">Cable Machines</option>
+                <option value="Treadmill">Cardio / Treadmill</option>
+            </select>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label small fw-semibold text-secondary">Intensity Level</label>
+            <select class="form-select form-select-sm" id="levelSelect" onchange="runAiFinder()">
+                <option value="beginner">Beginner (Form & Foundation)</option>
+                <option value="intermediate" selected>Intermediate (Hypertrophy & Tone)</option>
+                <option value="advanced">Advanced (Heavy & High Volume)</option>
+            </select>
+        </div>
+    </div>
+</div>
+
+<!-- Results Area -->
+<div id="aiResultsContainer">
+    <!-- Initial State / Default Recommendations -->
+    <div id="aiLoadingIndicator" class="text-center py-5 d-none">
+        <div class="spinner-border text-danger mb-3" role="status" style="width: 3rem; height: 3rem;">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <h5 class="fw-bold">AI Fitness Coach is Analyzing...</h5>
+        <p class="text-secondary small">Synthesizing optimal exercise selection, volume, and physiological recovery pacing.</p>
+    </div>
+
+    <div id="aiResultsContent">
+        <!-- AI Coach Insights Card -->
+        <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-light border-start border-danger border-4">
+            <div class="d-flex align-items-center gap-2 mb-2">
+                <i class="bi bi-lightbulb-fill text-warning fs-4"></i>
+                <h5 class="fw-bold m-0 text-dark">AI Coach Strategy & Tips</h5>
+            </div>
+            <div id="aiCoachAdviceList">
+                <p class="text-secondary small mb-1">⚡ Performance Tip: Always complete a 5-minute dynamic warm-up before beginning heavy compound sets.</p>
+                <p class="text-secondary small mb-0">💧 Hydration & Recovery: Drink at least 500ml water during your session and log your lifted weights to track progressive overload.</p>
+            </div>
+        </div>
+
+        <!-- Exercise Routine Grid -->
+        <div class="d-flex align-items-center justify-content-between mb-3">
+            <h5 class="fw-bold m-0"><i class="bi bi-fire text-danger me-2"></i> Recommended Exercises (<span id="exerciseCount">0</span>)</h5>
+            <span class="badge bg-danger bg-opacity-10 text-danger border border-danger-subtle px-3 py-1 rounded-pill" id="targetMusclesBadge">Full Body</span>
+        </div>
+
+        <div class="row g-3" id="exerciseCardsGrid">
+            <!-- Dynamically populated via JavaScript -->
+        </div>
+    </div>
+</div>
+
+<script>
+    function quickPreset(text) {
+        document.getElementById('aiQueryInput').value = text;
+        runAiFinder();
+    }
+
+    async function runAiFinder() {
+        const query = document.getElementById('aiQueryInput').value.trim();
+        const muscle = document.getElementById('muscleGroupSelect').value;
+        const equip = document.getElementById('equipmentSelect').value;
+        const level = document.getElementById('levelSelect').value;
+
+        const loader = document.getElementById('aiLoadingIndicator');
+        const content = document.getElementById('aiResultsContent');
+
+        loader.classList.remove('d-none');
+        content.classList.add('opacity-50');
+
+        try {
+            const resp = await fetch('{{ url_for("workout.api_ai_find") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    query: query,
+                    muscle_group: muscle,
+                    equipment: equip,
+                    fitness_level: level
+                })
+            });
+
+            const data = await resp.json();
+            renderResults(data);
+        } catch (err) {
+            console.error('AI Finder error:', err);
+        } finally {
+            loader.classList.add('d-none');
+            content.classList.remove('opacity-50');
+        }
+    }
+
+    function renderResults(data) {
+        // Render Coach Advice
+        const adviceContainer = document.getElementById('aiCoachAdviceList');
+        if (data.coach_advice && data.coach_advice.length > 0) {
+            adviceContainer.innerHTML = data.coach_advice.map(tip => `<p class="text-secondary small mb-1">${tip}</p>`).join('');
+        }
+
+        // Render Badges
+        document.getElementById('exerciseCount').textContent = data.count || data.exercises.length;
+        document.getElementById('targetMusclesBadge').textContent = (data.detected_muscles || ['Full Body']).join(', ');
+
+        // Render Cards
+        const grid = document.getElementById('exerciseCardsGrid');
+        grid.innerHTML = '';
+
+        if (!data.exercises || data.exercises.length === 0) {
+            grid.innerHTML = `
+                <div class="col-12 text-center py-5 text-muted">
+                    <p>No matching exercises found. Try refining your search query.</p>
+                </div>`;
+            return;
+        }
+
+        data.exercises.forEach(ex => {
+            const col = document.createElement('div');
+            col.className = 'col-md-6 col-lg-4';
+            col.innerHTML = `
+                <div class="card h-100 border-0 shadow-sm rounded-4 p-4 d-flex flex-column">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <span class="badge bg-danger bg-opacity-10 text-danger border border-danger-subtle">${ex.muscle_group}</span>
+                        <span class="badge bg-light text-muted border"><i class="bi bi-gear me-1"></i>${ex.equipment}</span>
+                    </div>
+                    <h5 class="fw-bold text-dark mt-1 mb-2">${ex.name}</h5>
+                    <p class="text-secondary small mb-3 flex-grow-1">${ex.instructions || ex.description || 'Perform with disciplined posture and controlled eccentric motion.'}</p>
+                    
+                    <div class="bg-light p-2 rounded-3 mb-3 d-flex justify-content-around text-center small">
+                        <div>
+                            <span class="text-muted d-block extra-small">Target Sets</span>
+                            <strong>${ex.target_sets} Sets</strong>
+                        </div>
+                        <div class="border-start ps-3">
+                            <span class="text-muted d-block extra-small">Reps</span>
+                            <strong>${ex.target_reps}</strong>
+                        </div>
+                        <div class="border-start ps-3">
+                            <span class="text-muted d-block extra-small">Rest</span>
+                            <strong>${ex.rest_seconds}s</strong>
+                        </div>
+                    </div>
+
+                    <a href="{{ url_for('workout.my_workout') }}" class="btn btn-outline-danger btn-sm fw-bold w-100">
+                        <i class="bi bi-journal-plus me-1"></i> Log in My Daily Workout
+                    </a>
+                </div>
+            `;
+            grid.appendChild(col);
+        });
+    }
+
+    // Auto-run on load to show initial recommendations
+    window.addEventListener('DOMContentLoaded', () => {
+        runAiFinder();
+    });
+
+    document.getElementById('aiQueryInput').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            runAiFinder();
+        }
+    });
+</script>
+{% endblock %}

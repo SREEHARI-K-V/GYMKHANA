@@ -1,0 +1,138 @@
+{% extends 'base.html' %}
+
+{% block title %}Payment History — GYMKHANA{% endblock %}
+{% block page_title %}Membership Invoices & Payment History{% endblock %}
+
+{% block content %}
+<!-- Top KPI Summary Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-md-4">
+        <div class="card card-gym-stat stat-green p-3 h-100">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <span class="text-secondary small fw-semibold">Total Paid to Date</span>
+                <div class="stat-icon-wrapper bg-success bg-opacity-10 text-success">
+                    <i class="bi bi-cash-stack"></i>
+                </div>
+            </div>
+            <h3 class="fw-extrabold text-success m-0">₹{{ "%.2f"|format(total_spent) }}</h3>
+            <small class="text-muted">Across all membership transactions</small>
+        </div>
+    </div>
+
+    <div class="col-sm-6 col-md-4">
+        <div class="card card-gym-stat stat-blue p-3 h-100">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <span class="text-secondary small fw-semibold">Total Invoices</span>
+                <div class="stat-icon-wrapper bg-primary bg-opacity-10 text-primary">
+                    <i class="bi bi-receipt-cutoff"></i>
+                </div>
+            </div>
+            <h3 class="fw-bold text-dark m-0">{{ payments|length }}</h3>
+            <small class="text-muted">Verified payment receipts</small>
+        </div>
+    </div>
+
+    <div class="col-sm-12 col-md-4">
+        <div class="card border-0 shadow-sm rounded-4 p-3 h-100 bg-white d-flex flex-column justify-content-center">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <h6 class="fw-bold mb-1">Need to Renew?</h6>
+                    <small class="text-muted">Extend your plan anytime without losing active days.</small>
+                </div>
+                <a href="{{ url_for('subscription.my_membership') }}" class="btn btn-danger btn-sm fw-bold">
+                    <i class="bi bi-arrow-repeat me-1"></i> Renew Now
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Payments Table Card -->
+<div class="card border-0 shadow-sm rounded-4 p-4">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <h5 class="fw-bold m-0"><i class="bi bi-clock-history text-danger me-2"></i> All Transactions</h5>
+        <span class="badge bg-light text-dark border">{{ payments|length }} Records</span>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-hover align-middle table-custom m-0">
+            <thead>
+                <tr>
+                    <th>Date & Time</th>
+                    <th>Invoice / Receipt</th>
+                    <th>Plan Name</th>
+                    <th>Type</th>
+                    <th>Payment Method</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                    <th class="text-end">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if payments %}
+                    {% for p in payments %}
+                        <tr>
+                            <td>
+                                <strong class="d-block text-dark small">{{ p.payment_date }}</strong>
+                                <small class="text-muted extra-small">ID: {{ p.transaction_id }}</small>
+                            </td>
+                            <td>
+                                <span class="badge bg-light text-dark border fw-semibold">
+                                    <i class="bi bi-receipt me-1"></i> {{ p.receipt_number }}
+                                </span>
+                            </td>
+                            <td class="fw-bold">{{ p.plan_name }}</td>
+                            <td>
+                                {% if p.payment_type == 'RENEWAL' %}
+                                    <span class="badge bg-info-subtle text-info border border-info-subtle">
+                                        <i class="bi bi-arrow-repeat me-1"></i> Renewal
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle">
+                                        <i class="bi bi-plus-circle me-1"></i> New Plan
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-light text-secondary border">
+                                    {{ p.payment_method }}
+                                </span>
+                            </td>
+                            <td>
+                                <strong class="fs-6 text-danger">₹{{ "%.2f"|format(p.amount) }}</strong>
+                            </td>
+                            <td>
+                                {% if p.payment_status == 'COMPLETED' %}
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
+                                        <i class="bi bi-check-circle-fill me-1"></i> Completed
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-2 py-1">
+                                        {{ p.payment_status }}
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                <a href="{{ url_for('subscription.receipt', payment_id=p.id) }}" class="btn btn-sm btn-outline-danger fw-bold">
+                                    <i class="bi bi-receipt me-1"></i> View Receipt
+                                </a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="8" class="text-center py-5 text-muted">
+                            <i class="bi bi-wallet2 display-4 d-block mb-3 text-secondary opacity-50"></i>
+                            <h6 class="fw-bold">No payment transactions recorded yet</h6>
+                            <p class="small text-secondary mb-3">When you subscribe to a membership plan or renew, all online invoices will appear here.</p>
+                            <a href="{{ url_for('subscription.my_membership') }}" class="btn btn-danger btn-sm fw-bold">
+                                View Membership Plans
+                            </a>
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

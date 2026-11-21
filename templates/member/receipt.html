@@ -1,0 +1,129 @@
+{% extends 'base.html' %}
+
+{% block title %}Payment Receipt #{{ payment.receipt_number }} — GYMKHANA{% endblock %}
+{% block page_title %}Official Payment Receipt & Tax Invoice{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mb-5">
+    <div class="col-lg-8">
+        <!-- Action Buttons -->
+        <div class="d-flex align-items-center justify-content-between mb-3 d-print-none">
+            <a href="{{ url_for('subscription.payment_history') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i> Payment History
+            </a>
+            <div class="d-flex gap-2">
+                <a href="{{ url_for('subscription.my_membership') }}" class="btn btn-outline-danger">
+                    <i class="bi bi-card-checklist me-1"></i> My Membership
+                </a>
+                <button onclick="window.print()" class="btn btn-danger fw-bold shadow-sm">
+                    <i class="bi bi-printer-fill me-1"></i> Print / Save PDF Invoice
+                </button>
+            </div>
+        </div>
+
+        <!-- Printable Invoice Paper Card -->
+        <div class="card border-0 shadow rounded-4 p-5 bg-white position-relative printable-invoice">
+            <!-- Paid Stamp Watermark -->
+            <div class="position-absolute top-0 end-0 m-4 text-center">
+                <span class="badge bg-success bg-opacity-10 text-success border border-success-subtle px-4 py-2 fs-6 rounded-pill">
+                    <i class="bi bi-check-circle-fill me-1"></i> PAYMENT COMPLETED
+                </span>
+            </div>
+
+            <!-- Header -->
+            <div class="d-flex align-items-center gap-3 mb-4 pb-3 border-bottom">
+                <i class="bi bi-lightning-charge-fill text-danger display-5"></i>
+                <div>
+                    <h2 class="fw-extrabold m-0 text-dark">GYMKHANA</h2>
+                    <small class="text-secondary">Gym Management & Fitness Tracking System — MCA Project 2026</small>
+                </div>
+            </div>
+
+            <!-- Invoice Meta Information -->
+            <div class="row g-4 mb-4">
+                <div class="col-sm-6">
+                    <small class="text-muted text-uppercase fw-bold d-block">Billed To (Member):</small>
+                    <h5 class="fw-bold text-dark mt-1 mb-1">{{ payment.member_name }}</h5>
+                    <div class="small text-secondary"><i class="bi bi-envelope me-1"></i> {{ payment.member_email }}</div>
+                    {% if payment.member_phone %}
+                        <div class="small text-secondary"><i class="bi bi-telephone me-1"></i> {{ payment.member_phone }}</div>
+                    {% endif %}
+                </div>
+                <div class="col-sm-6 text-sm-end">
+                    <small class="text-muted text-uppercase fw-bold d-block">Invoice Details:</small>
+                    <div class="mt-1"><strong>Invoice No:</strong> {{ payment.receipt_number }}</div>
+                    <div><strong>Date & Time:</strong> {{ payment.payment_date }}</div>
+                    <div><strong>Transaction ID:</strong> <span class="badge bg-light text-dark border">{{ payment.transaction_id }}</span></div>
+                    <div><strong>Payment Mode:</strong> <span class="badge bg-danger bg-opacity-10 text-danger border border-danger-subtle">{{ payment.payment_method }}</span></div>
+                </div>
+            </div>
+
+            <!-- Itemized Table -->
+            <div class="table-responsive mb-4">
+                <table class="table table-bordered align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Item Description</th>
+                            <th>Duration</th>
+                            <th>Membership Validity</th>
+                            <th class="text-end">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>
+                                <strong class="d-block text-dark">{{ payment.plan_name }}</strong>
+                                <small class="text-muted">{{ payment.plan_description }}</small>
+                                <span class="badge bg-light text-secondary border d-inline-block mt-1">Type: {{ payment.payment_type }}</span>
+                            </td>
+                            <td>{{ payment.duration_months }} Month{% if payment.duration_months > 1 %}s{% endif %}</td>
+                            <td>
+                                {% if payment.start_date and payment.expiry_date %}
+                                    <span class="small fw-semibold text-dark">{{ payment.start_date }} to {{ payment.expiry_date }}</span>
+                                {% else %}
+                                    <span class="small text-muted">Active Cycle</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end fw-bold text-dark">
+                                ₹{{ "%.2f"|format(payment.amount) }}
+                            </td>
+                        </tr>
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <th colspan="3" class="text-end">Subtotal:</th>
+                            <td class="text-end">₹{{ "%.2f"|format(payment.amount) }}</td>
+                        </tr>
+                        <tr>
+                            <th colspan="3" class="text-end">Taxes (GST 18% Inclusive):</th>
+                            <td class="text-end text-success">Included</td>
+                        </tr>
+                        <tr class="table-light">
+                            <th colspan="3" class="text-end fs-5 text-dark">Total Amount Paid:</th>
+                            <td class="text-end fs-4 fw-extrabold text-danger">₹{{ "%.2f"|format(payment.amount) }}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            <!-- Terms & Footer -->
+            <div class="border-top pt-4 mt-2">
+                <div class="row text-muted small">
+                    <div class="col-md-8">
+                        <strong class="text-dark d-block mb-1">Terms & Conditions:</strong>
+                        <ul class="mb-0 ps-3">
+                            <li>Membership is non-transferable and activated immediately upon successful payment verification.</li>
+                            <li>Gym floor access, locker rooms, assessment, and mobile tracking access are granted during validity.</li>
+                            <li>For any billing disputes or receipt inquiries, contact Gymkhana Desk: support@gymkhana.com</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-4 text-md-end mt-3 mt-md-0 d-flex flex-column justify-content-end">
+                        <div class="border-bottom pb-1 mb-1 fw-bold text-dark">Authorized Gymkhana Seal</div>
+                        <small class="text-muted">Digitally Signed & Validated</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

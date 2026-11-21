@@ -1,0 +1,248 @@
+{% extends 'base.html' %}
+
+{% block title %}My Membership & Renewal — GYMKHANA{% endblock %}
+{% block page_title %}Gym Membership & Online Renewal{% endblock %}
+
+{% block content %}
+<!-- Top Row: Active Plan & Available Plans -->
+<div class="row g-4 mb-4">
+    <!-- Current Active Membership Card -->
+    <div class="col-lg-7">
+        <div class="card border-0 shadow-sm rounded-4 p-4 h-100 position-relative">
+            <span class="badge bg-danger bg-opacity-10 text-danger border border-danger-subtle px-3 py-1 rounded-pill position-absolute top-0 end-0 m-4">
+                {{ status_label }}
+            </span>
+            <h5 class="fw-bold mb-3"><i class="bi bi-card-checklist text-danger me-2"></i> Current Subscription</h5>
+            
+            {% if subscription %}
+                <div class="my-3">
+                    <h2 class="fw-bold text-dark m-0">{{ subscription.plan_name }}</h2>
+                    <p class="text-secondary small mt-1 mb-2">{{ subscription.plan_description }}</p>
+                    
+                    <!-- Progress Bar for Remaining Days -->
+                    <div class="d-flex align-items-center gap-3 my-3">
+                        <small class="text-muted fw-semibold">Validity Remaining:</small>
+                        <div class="progress flex-grow-1" style="height: 10px;">
+                            <div class="progress-bar {% if remaining_days <= 7 %}bg-warning{% else %}bg-danger{% endif %}" 
+                                 role="progressbar" style="width: {{ progress_percentage }}%;"></div>
+                        </div>
+                        <strong class="badge {% if remaining_days <= 7 %}bg-warning text-dark{% else %}bg-danger{% endif %} fs-6">
+                            {{ remaining_days }} Days Left
+                        </strong>
+                    </div>
+                </div>
+                
+                <div class="row g-3 bg-light p-3 rounded-3 mb-4">
+                    <div class="col-6 col-sm-3">
+                        <small class="text-muted d-block">Start Date</small>
+                        <strong class="text-dark">{{ subscription.start_date }}</strong>
+                    </div>
+                    <div class="col-6 col-sm-3">
+                        <small class="text-muted d-block">Expiry Date</small>
+                        <strong class="text-dark">{{ subscription.expiry_date }}</strong>
+                    </div>
+                    <div class="col-6 col-sm-3">
+                        <small class="text-muted d-block">Amount Paid</small>
+                        <strong class="text-danger">₹{{ "%.0f"|format(subscription.amount) }}</strong>
+                    </div>
+                    <div class="col-6 col-sm-3">
+                        <small class="text-muted d-block">Plan Tier</small>
+                        <strong class="text-dark">{{ subscription.duration_months }} Month(s)</strong>
+                    </div>
+                </div>
+
+                <!-- Plan Benefits List -->
+                {% if subscription.benefits %}
+                    <div class="mb-4">
+                        <small class="text-muted text-uppercase fw-bold d-block mb-2">Included Privileges:</small>
+                        <div class="d-flex flex-wrap gap-2">
+                            {% for benefit in subscription.benefits.split('\n') %}
+                                <span class="badge bg-light text-dark border p-2">
+                                    <i class="bi bi-check-circle-fill text-success me-1"></i> {{ benefit }}
+                                </span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endif %}
+
+                <!-- Anytime Renewal Actions -->
+                <div class="d-flex flex-wrap align-items-center gap-3 pt-2 border-top">
+                    <!-- Direct 1-Click Renew Current Plan -->
+                    <a href="{{ url_for('subscription.checkout', plan_id=subscription.plan_id) }}" class="btn btn-danger fw-bold px-4 py-2 shadow-sm">
+                        <i class="bi bi-arrow-repeat me-1"></i> Renew {{ subscription.plan_name }} (Online Pay)
+                    </a>
+                    <!-- Select Other Plan / Upgrade -->
+                    <button class="btn btn-outline-secondary fw-bold px-4 py-2" data-bs-toggle="modal" data-bs-target="#changePlanModal">
+                        <i class="bi bi-arrow-up-circle me-1"></i> Upgrade / Change Plan
+                    </button>
+                    <small class="text-muted d-block w-100 mt-1">
+                        <i class="bi bi-info-circle me-1"></i> <strong>Renew anytime!</strong> Existing remaining days are preserved and carried forward automatically.
+                    </small>
+                </div>
+            {% else %}
+                <div class="text-center py-5">
+                    <i class="bi bi-exclamation-circle text-warning display-4 d-block mb-3"></i>
+                    <h5 class="fw-bold">No Active Gym Membership</h5>
+                    <p class="text-secondary small mb-4">Subscribe to a gym membership plan to unlock workout schedules, certified trainer guidance, and branch facilities.</p>
+                    <button class="btn btn-danger font-weight-bold px-4 py-2 shadow-sm" data-bs-toggle="modal" data-bs-target="#changePlanModal">
+                        <i class="bi bi-plus-circle me-1"></i> Browse Plans & Subscribe
+                    </button>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Available Plans Quick Summary Card -->
+    <div class="col-lg-5">
+        <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+                <h5 class="fw-bold m-0"><i class="bi bi-tags-fill text-danger me-2"></i> Gymkhana Plans</h5>
+                <a href="{{ url_for('subscription.payment_history') }}" class="btn btn-sm btn-outline-danger">
+                    <i class="bi bi-clock-history me-1"></i> Invoices
+                </a>
+            </div>
+            <div class="list-group list-group-flush border-0">
+                {% for plan in available_plans %}
+                    <div class="list-group-item px-0 py-3 border-bottom d-flex align-items-center justify-content-between">
+                        <div>
+                            <h6 class="fw-bold mb-0 text-dark">{{ plan.name }}</h6>
+                            <small class="text-muted">{{ plan.duration_months }} Month{% if plan.duration_months > 1 %}s{% endif %} access</small>
+                            <span class="d-block text-danger fw-bold fs-6 mt-1">₹{{ "%.0f"|format(plan.price) }}</span>
+                        </div>
+                        <div>
+                            <a href="{{ url_for('subscription.checkout', plan_id=plan.id) }}" class="btn btn-sm btn-outline-danger fw-bold rounded-pill px-3">
+                                {% if subscription and subscription.plan_id == plan.id %}
+                                    Renew
+                                {% else %}
+                                    Select & Pay
+                                {% endif %}
+                            </a>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Online Payment Transactions Table -->
+<div class="card border-0 shadow-sm rounded-4 p-4 mb-4">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <h5 class="fw-bold m-0"><i class="bi bi-receipt text-danger me-2"></i> Recent Payment Invoices</h5>
+        <a href="{{ url_for('subscription.payment_history') }}" class="small fw-bold text-danger text-decoration-none">
+            View All Payments <i class="bi bi-arrow-right"></i>
+        </a>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle table-custom m-0">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Receipt No</th>
+                    <th>Plan Name</th>
+                    <th>Payment Method</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                    <th class="text-end">Invoice</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if recent_payments %}
+                    {% for p in recent_payments %}
+                        <tr>
+                            <td class="small text-muted">{{ p.payment_date }}</td>
+                            <td><span class="badge bg-light text-dark border">{{ p.receipt_number }}</span></td>
+                            <td class="fw-bold">{{ p.plan_name }}</td>
+                            <td><span class="badge bg-light text-secondary border">{{ p.payment_method }}</span></td>
+                            <td><strong class="text-danger">₹{{ "%.2f"|format(p.amount) }}</strong></td>
+                            <td><span class="badge bg-success-subtle text-success border">Paid</span></td>
+                            <td class="text-end">
+                                <a href="{{ url_for('subscription.receipt', payment_id=p.id) }}" class="btn btn-sm btn-outline-danger">
+                                    <i class="bi bi-printer me-1"></i> Print Receipt
+                                </a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center py-4 text-muted">No recent online payment receipts found.</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Subscription History Log -->
+<div class="card border-0 shadow-sm rounded-4 p-4">
+    <h5 class="fw-bold mb-3"><i class="bi bi-clock-history text-danger me-2"></i> Subscription History</h5>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle table-custom m-0">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Plan Name</th>
+                    <th>Action</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if history %}
+                    {% for item in history %}
+                        <tr>
+                            <td>{{ item.date }}</td>
+                            <td class="fw-bold">{{ item.plan_name }}</td>
+                            <td>
+                                {% if item.action == 'RENEWAL' %}
+                                    <span class="badge bg-info-subtle text-info border">Renewal</span>
+                                {% else %}
+                                    <span class="badge bg-light text-dark border">{{ item.action }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="fw-bold text-danger">₹{{ "%.0f"|format(item.amount) }}</td>
+                            <td><span class="badge bg-success-subtle text-success border">Completed</span></td>
+                        </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="5" class="text-center py-4 text-muted">No subscription history recorded yet.</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Change / Upgrade Plan Modal -->
+<div class="modal fade" id="changePlanModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 rounded-4">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold m-0"><i class="bi bi-lightning-charge text-danger me-2"></i> Choose Membership Plan</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body py-4">
+                <p class="text-secondary small mb-3">Select the plan you wish to subscribe to or upgrade. You will be redirected to the secure online payment gateway.</p>
+                <div class="list-group">
+                    {% for plan in available_plans %}
+                        <a href="{{ url_for('subscription.checkout', plan_id=plan.id) }}" class="list-group-item list-group-item-action p-3 rounded-3 mb-2 border d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="fw-bold mb-1">{{ plan.name }}</h6>
+                                <small class="text-muted">{{ plan.duration_months }} Month{% if plan.duration_months > 1 %}s{% endif %} Full Access</small>
+                            </div>
+                            <div class="text-end">
+                                <span class="fw-bold text-danger fs-5 d-block">₹{{ "%.0f"|format(plan.price) }}</span>
+                                <span class="badge bg-danger text-white">Pay Online <i class="bi bi-arrow-right"></i></span>
+                            </div>
+                        </a>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

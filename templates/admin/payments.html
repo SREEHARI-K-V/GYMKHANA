@@ -1,0 +1,153 @@
+{% extends 'base.html' %}
+
+{% block title %}Online Payments — GYMKHANA Admin{% endblock %}
+{% block page_title %}Online Payments & Revenue Management{% endblock %}
+
+{% block content %}
+<!-- Revenue KPI Row -->
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3">
+        <div class="card card-gym-stat stat-green p-3 h-100">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <span class="text-secondary small fw-semibold">Total Online Revenue</span>
+                <div class="stat-icon-wrapper bg-success bg-opacity-10 text-success">
+                    <i class="bi bi-cash-coin"></i>
+                </div>
+            </div>
+            <h3 class="fw-extrabold text-success m-0">₹{{ "%.2f"|format(total_revenue) }}</h3>
+            <small class="text-muted">Direct gateway collections</small>
+        </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+        <div class="card card-gym-stat stat-blue p-3 h-100">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <span class="text-secondary small fw-semibold">Total Transactions</span>
+                <div class="stat-icon-wrapper bg-primary bg-opacity-10 text-primary">
+                    <i class="bi bi-arrow-left-right"></i>
+                </div>
+            </div>
+            <h3 class="fw-bold text-dark m-0">{{ total_txns }}</h3>
+            <small class="text-muted">Successful checkouts</small>
+        </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+        <div class="card card-gym-stat stat-orange p-3 h-100">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <span class="text-secondary small fw-semibold">UPI Collections</span>
+                <div class="stat-icon-wrapper bg-warning bg-opacity-10 text-warning">
+                    <i class="bi bi-qr-code"></i>
+                </div>
+            </div>
+            <h3 class="fw-bold text-warning m-0">{{ upi_count }}</h3>
+            <small class="text-muted">Instant QR & VPA payments</small>
+        </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+        <div class="card card-gym-stat stat-purple p-3 h-100">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <span class="text-secondary small fw-semibold">Card / NetBanking</span>
+                <div class="stat-icon-wrapper bg-danger bg-opacity-10 text-danger">
+                    <i class="bi bi-credit-card"></i>
+                </div>
+            </div>
+            <h3 class="fw-bold text-danger m-0">{{ card_count }}</h3>
+            <small class="text-muted">Debit/Credit & Bank transfers</small>
+        </div>
+    </div>
+</div>
+
+<!-- Search and Transactions List -->
+<div class="card border-0 shadow-sm rounded-4 p-4">
+    <div class="row align-items-center g-3 mb-4">
+        <div class="col-md-6">
+            <h5 class="fw-bold m-0"><i class="bi bi-receipt text-danger me-2"></i> Payment Records</h5>
+            <small class="text-muted">Real-time ledger of member payments and renewals</small>
+        </div>
+        <div class="col-md-6">
+            <form method="GET" action="{{ url_for('admin.payments') }}" class="d-flex gap-2">
+                <input type="text" name="q" class="form-control form-control-sm" placeholder="Search by member, email, txn ID, receipt..." value="{{ search }}">
+                <select name="status" class="form-select form-select-sm" style="width: 150px;">
+                    <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Status</option>
+                    <option value="COMPLETED" {% if status_filter == 'COMPLETED' %}selected{% endif %}>Completed</option>
+                    <option value="PENDING" {% if status_filter == 'PENDING' %}selected{% endif %}>Pending</option>
+                </select>
+                <button type="submit" class="btn btn-sm btn-danger px-3">Filter</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-hover align-middle table-custom m-0">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Member Details</th>
+                    <th>Plan</th>
+                    <th>Transaction Reference</th>
+                    <th>Method</th>
+                    <th>Type</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                    <th class="text-end">Receipt</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if payments %}
+                    {% for p in payments %}
+                        <tr>
+                            <td class="text-muted small">{{ p.payment_date }}</td>
+                            <td>
+                                <strong class="text-dark d-block">{{ p.member_name }}</strong>
+                                <small class="text-muted">{{ p.member_email }}</small>
+                            </td>
+                            <td class="fw-semibold">{{ p.plan_name }}</td>
+                            <td>
+                                <span class="badge bg-light text-dark border extra-small d-block mb-1">{{ p.transaction_id }}</span>
+                                <small class="text-muted">Rec: {{ p.receipt_number }}</small>
+                            </td>
+                            <td>
+                                <span class="badge bg-light text-secondary border">{{ p.payment_method }}</span>
+                            </td>
+                            <td>
+                                {% if p.payment_type == 'RENEWAL' %}
+                                    <span class="badge bg-info-subtle text-info border border-info-subtle">Renewal</span>
+                                {% else %}
+                                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle">New</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <strong class="text-danger fw-bold">₹{{ "%.2f"|format(p.amount) }}</strong>
+                            </td>
+                            <td>
+                                {% if p.payment_status == 'COMPLETED' %}
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                        <i class="bi bi-check-circle-fill me-1"></i> Completed
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ p.payment_status }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                <a href="{{ url_for('subscription.receipt', payment_id=p.id) }}" target="_blank" class="btn btn-sm btn-outline-danger">
+                                    <i class="bi bi-printer me-1"></i> Receipt
+                                </a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="9" class="text-center py-5 text-muted">
+                            <i class="bi bi-wallet2 display-4 d-block mb-3 text-secondary opacity-50"></i>
+                            <h6 class="fw-bold">No payment records found</h6>
+                            <p class="small text-secondary">No transactions matched your search query.</p>
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

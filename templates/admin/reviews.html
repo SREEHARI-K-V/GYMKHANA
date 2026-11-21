@@ -1,0 +1,211 @@
+{% extends 'base.html' %}
+
+{% block title %}Review Moderation — GYMKHANA Admin{% endblock %}
+{% block page_title %}Reviews & Feedback Moderation Center{% endblock %}
+
+{% block content %}
+<!-- KPI Stats Row -->
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3">
+        <div class="card card-gym-stat stat-blue p-3 h-100">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <span class="text-secondary small fw-semibold">Total Reviews</span>
+                <div class="stat-icon-wrapper bg-primary bg-opacity-10 text-primary">
+                    <i class="bi bi-chat-square-text-fill"></i>
+                </div>
+            </div>
+            <h3 class="fw-bold m-0">{{ total_reviews }}</h3>
+            <small class="text-muted">Webpage & Trainer feedback</small>
+        </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+        <div class="card card-gym-stat stat-orange p-3 h-100">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <span class="text-secondary small fw-semibold">Pending Approval</span>
+                <div class="stat-icon-wrapper bg-warning bg-opacity-10 text-warning">
+                    <i class="bi bi-hourglass-split"></i>
+                </div>
+            </div>
+            <h3 class="fw-bold text-warning m-0">{{ pending_count }}</h3>
+            <small class="text-muted">Requires admin moderation</small>
+        </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+        <div class="card card-gym-stat stat-green p-3 h-100">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <span class="text-secondary small fw-semibold">Approved Reviews</span>
+                <div class="stat-icon-wrapper bg-success bg-opacity-10 text-success">
+                    <i class="bi bi-check-circle-fill"></i>
+                </div>
+            </div>
+            <h3 class="fw-bold text-success m-0">{{ approved_count }}</h3>
+            <small class="text-muted">Live on public portal</small>
+        </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+        <div class="card card-gym-stat stat-purple p-3 h-100">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <span class="text-secondary small fw-semibold">Rejected Reviews</span>
+                <div class="stat-icon-wrapper bg-danger bg-opacity-10 text-danger">
+                    <i class="bi bi-x-circle-fill"></i>
+                </div>
+            </div>
+            <h3 class="fw-bold text-danger m-0">{{ rejected_count }}</h3>
+            <small class="text-muted">Declined submissions</small>
+        </div>
+    </div>
+</div>
+
+<!-- Filters and Reviews Table -->
+<div class="card border-0 shadow-sm rounded-4 p-4">
+    <!-- Filter Tabs Header -->
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+        <!-- Status Tabs -->
+        <div class="btn-group" role="group">
+            <a href="{{ url_for('admin.reviews', status='all', type=current_type) }}" 
+               class="btn btn-sm {% if current_status == 'all' %}btn-danger{% else %}btn-outline-secondary{% endif %}">
+                All ({{ total_reviews }})
+            </a>
+            <a href="{{ url_for('admin.reviews', status='pending', type=current_type) }}" 
+               class="btn btn-sm {% if current_status == 'pending' %}btn-warning text-dark fw-bold{% else %}btn-outline-secondary{% endif %}">
+                Pending ({{ pending_count }})
+            </a>
+            <a href="{{ url_for('admin.reviews', status='approved', type=current_type) }}" 
+               class="btn btn-sm {% if current_status == 'approved' %}btn-success{% else %}btn-outline-secondary{% endif %}">
+                Approved ({{ approved_count }})
+            </a>
+            <a href="{{ url_for('admin.reviews', status='rejected', type=current_type) }}" 
+               class="btn btn-sm {% if current_status == 'rejected' %}btn-secondary{% else %}btn-outline-secondary{% endif %}">
+                Rejected ({{ rejected_count }})
+            </a>
+        </div>
+
+        <!-- Type Filter Dropdown -->
+        <div class="d-flex align-items-center gap-2">
+            <span class="small text-muted fw-semibold">Filter Type:</span>
+            <div class="btn-group" role="group">
+                <a href="{{ url_for('admin.reviews', status=current_status, type='all') }}" 
+                   class="btn btn-sm {% if current_type == 'all' %}btn-dark{% else %}btn-outline-secondary{% endif %}">
+                    All
+                </a>
+                <a href="{{ url_for('admin.reviews', status=current_status, type='webpage') }}" 
+                   class="btn btn-sm {% if current_type == 'webpage' %}btn-dark{% else %}btn-outline-secondary{% endif %}">
+                    Webpage
+                </a>
+                <a href="{{ url_for('admin.reviews', status=current_status, type='trainer') }}" 
+                   class="btn btn-sm {% if current_type == 'trainer' %}btn-dark{% else %}btn-outline-secondary{% endif %}">
+                    Trainer
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reviews Table -->
+    <div class="table-responsive">
+        <table class="table table-hover align-middle table-custom m-0">
+            <thead>
+                <tr>
+                    <th>Reviewer</th>
+                    <th>Type / Target</th>
+                    <th>Rating</th>
+                    <th style="min-width: 250px;">Review Content</th>
+                    <th>Submitted</th>
+                    <th>Status</th>
+                    <th class="text-end">Moderation Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if reviews_list %}
+                    {% for rev in reviews_list %}
+                        <tr>
+                            <td>
+                                <strong class="text-dark d-block">{{ rev.user_name }}</strong>
+                                <span class="badge bg-light text-muted border extra-small">{{ rev.user_role }}</span>
+                                <small class="text-muted d-block extra-small">{{ rev.user_email }}</small>
+                            </td>
+                            <td>
+                                {% if rev.review_type == 'webpage' %}
+                                    <span class="badge bg-danger bg-opacity-10 text-danger border border-danger-subtle">
+                                        <i class="bi bi-globe me-1"></i> Webpage Review
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-primary bg-opacity-10 text-primary border border-primary-subtle d-block mb-1">
+                                        <i class="bi bi-person-badge me-1"></i> Trainer Review
+                                    </span>
+                                    <small class="fw-semibold text-dark">Target: {{ rev.trainer_name or 'Trainer' }}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="text-warning fw-bold fs-6">
+                                    {% for i in range(rev.rating) %}★{% endfor %}
+                                </span>
+                                <small class="text-muted d-block">({{ rev.rating }} / 5)</small>
+                            </td>
+                            <td>
+                                {% if rev.title %}
+                                    <strong class="text-dark d-block mb-1">{{ rev.title }}</strong>
+                                {% endif %}
+                                <p class="text-secondary small mb-0">{{ rev.comment }}</p>
+                            </td>
+                            <td class="text-muted small">
+                                {{ rev.created_at }}
+                            </td>
+                            <td>
+                                {% if rev.status == 'approved' %}
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1">
+                                        <i class="bi bi-check-circle-fill me-1"></i> Approved
+                                    </span>
+                                {% elif rev.status == 'rejected' %}
+                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-1">
+                                        <i class="bi bi-x-circle-fill me-1"></i> Rejected
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-3 py-1">
+                                        <i class="bi bi-hourglass-split me-1"></i> Pending
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                <div class="d-inline-flex gap-1">
+                                    {% if rev.status != 'approved' %}
+                                        <form action="{{ url_for('admin.approve_review', review_id=rev.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Approve and publish this review?');">
+                                            <button type="submit" class="btn btn-sm btn-success" title="Approve & Publish">
+                                                <i class="bi bi-check-lg"></i> Approve
+                                            </button>
+                                        </form>
+                                    {% endif %}
+
+                                    {% if rev.status != 'rejected' %}
+                                        <form action="{{ url_for('admin.reject_review', review_id=rev.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Reject this review?');">
+                                            <button type="submit" class="btn btn-sm btn-outline-warning text-dark" title="Reject Review">
+                                                <i class="bi bi-x-lg"></i> Reject
+                                            </button>
+                                        </form>
+                                    {% endif %}
+
+                                    <form action="{{ url_for('admin.delete_review', review_id=rev.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Permanently delete this review record?');">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete Review">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center py-5 text-muted">
+                            <i class="bi bi-inbox display-4 d-block mb-3 text-secondary opacity-50"></i>
+                            <h6 class="fw-bold">No reviews found</h6>
+                            <p class="small text-secondary">There are currently no reviews matching your filter criteria.</p>
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

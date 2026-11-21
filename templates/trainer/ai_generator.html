@@ -1,0 +1,322 @@
+{% extends 'base.html' %}
+
+{% block title %}AI Workout Generator — GYMKHANA Trainer{% endblock %}
+{% block page_title %}AI Workout Plan Generator & Assistant{% endblock %}
+
+{% block content %}
+<div class="row g-4 mb-4">
+    <!-- Left Configuration Panel -->
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
+            <div class="d-flex align-items-center gap-2 mb-3">
+                <div class="stat-icon-wrapper bg-danger bg-opacity-10 text-danger">
+                    <i class="bi bi-robot"></i>
+                </div>
+                <div>
+                    <h5 class="fw-bold m-0">AI Fitness Architect</h5>
+                    <small class="text-muted">Generate scientific routines instantly</small>
+                </div>
+            </div>
+
+            <!-- Member Selector -->
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Target Member</label>
+                <select id="memberSelect" class="form-select form-select-lg" onchange="onMemberSelected(this)">
+                    <option value="" disabled {% if not selected_member %}selected{% endif %}>-- Select Member --</option>
+                    {% for m in members %}
+                        <option value="{{ m.id }}" 
+                                data-weight="{{ m.weight or 70 }}" 
+                                data-height="{{ m.height or 175 }}"
+                                data-gender="{{ m.gender or 'Not specified' }}"
+                                {% if selected_member and selected_member.id == m.id %}selected{% endif %}>
+                            {{ m.name }} ({{ m.gender or 'M' }}, {{ m.weight or '--' }} kg)
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Member Metrics Preview -->
+            <div class="p-3 bg-light rounded-3 mb-3" id="memberMetricsCard">
+                <small class="text-muted d-block mb-1 fw-bold text-uppercase">Member Stats:</small>
+                <div class="d-flex justify-content-between small">
+                    <span>Weight: <strong id="dispWeight">{{ selected_member.weight if selected_member else '--' }} kg</strong></span>
+                    <span>Height: <strong id="dispHeight">{{ selected_member.height if selected_member else '--' }} cm</strong></span>
+                    <span>BMI: <strong id="dispBmi" class="text-danger">{{ selected_member.bmi if selected_member else '--' }}</strong></span>
+                </div>
+            </div>
+
+            <!-- Plan Parameters -->
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Primary Fitness Goal</label>
+                <select id="goalSelect" class="form-select">
+                    <option value="muscle_gain" selected>Muscle Gain (Hypertrophy & Mass)</option>
+                    <option value="fat_loss">Fat Loss (Metabolic Conditioning)</option>
+                    <option value="strength">Strength & Powerlifting (Compound Force)</option>
+                    <option value="endurance">Endurance & Calisthenics (Stamina)</option>
+                </select>
+            </div>
+
+            <div class="row g-2 mb-3">
+                <div class="col-6">
+                    <label class="form-label fw-semibold">Experience</label>
+                    <select id="levelSelect" class="form-select">
+                        <option value="beginner">Beginner</option>
+                        <option value="intermediate" selected>Intermediate</option>
+                        <option value="advanced">Advanced</option>
+                    </select>
+                </div>
+                <div class="col-6">
+                    <label class="form-label fw-semibold">Split (Days/Wk)</label>
+                    <select id="daysSelect" class="form-select">
+                        <option value="3">3 Days (Push/Pull/Legs)</option>
+                        <option value="4" selected>4 Days (Upper/Lower Split)</option>
+                        <option value="5">5 Days (Body-part Split)</option>
+                        <option value="6">6 Days (PPL x 2 High Volume)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Equipment Access</label>
+                <select id="equipmentSelect" class="form-select">
+                    <option value="Full Gym" selected>Full Gym (Barbell, Dumbbells, Cables, Machines)</option>
+                    <option value="Dumbbells">Dumbbells & Bench Only</option>
+                    <option value="Bodyweight">Bodyweight & Calisthenics</option>
+                </select>
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label fw-semibold">Special Notes / Injuries</label>
+                <input type="text" id="limitationsInput" class="form-control" placeholder="e.g. Lower back friendly, avoid shoulder impingement">
+            </div>
+
+            <button type="button" class="btn btn-danger btn-lg w-100 fw-bold shadow-sm" id="generateBtn" onclick="generateAiPlan()">
+                <i class="bi bi-stars me-1"></i> Generate AI Workout Plan
+            </button>
+        </div>
+    </div>
+
+    <!-- Right Plan Preview & Assign Panel -->
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm rounded-4 p-4 h-100" id="planOutputContainer">
+            <!-- Blank State -->
+            <div id="emptyPlanState" class="text-center py-5">
+                <i class="bi bi-cpu text-danger display-3 mb-3"></i>
+                <h4 class="fw-bold">Ready to Generate</h4>
+                <p class="text-secondary small mb-4">Select a member on the left, configure their target parameters, and click <strong>Generate AI Workout Plan</strong>.</p>
+                <div class="d-inline-flex gap-2">
+                    <span class="badge bg-light text-muted border p-2"><i class="bi bi-check2 me-1"></i> Auto-matches DB Exercises</span>
+                    <span class="badge bg-light text-muted border p-2"><i class="bi bi-check2 me-1"></i> Calibrated Sets & Reps</span>
+                    <span class="badge bg-light text-muted border p-2"><i class="bi bi-check2 me-1"></i> 1-Click Assignment</span>
+                </div>
+            </div>
+
+            <!-- Loading State -->
+            <div id="planLoadingState" class="text-center py-5 d-none">
+                <div class="spinner-border text-danger mb-3" style="width: 3.5rem; height: 3.5rem;" role="status"></div>
+                <h5 class="fw-bold">Synthesizing Workout Plan with AI...</h5>
+                <p class="text-secondary small">Evaluating member BMI, progressive volume curves, and exercise selections.</p>
+            </div>
+
+            <!-- Generated Plan Form Container -->
+            <div id="generatedPlanForm" class="d-none">
+                <form action="{{ url_for('trainer.assign_workout') }}" method="POST" id="assignmentForm">
+                    <input type="hidden" name="member_id" id="formMemberId">
+
+                    <!-- Plan Header -->
+                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3 border-bottom pb-3">
+                        <div>
+                            <span class="badge bg-danger bg-opacity-10 text-danger border border-danger-subtle px-3 py-1 rounded-pill mb-2">
+                                <i class="bi bi-robot me-1"></i> AI GENERATED ROUTINE
+                            </span>
+                            <div class="mb-2">
+                                <label class="form-label small fw-semibold text-muted">Plan Title</label>
+                                <input type="text" name="name" id="planTitleInput" class="form-control form-control-lg fw-bold text-dark" required>
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <button type="submit" class="btn btn-success fw-bold px-4 py-2 shadow-sm">
+                                <i class="bi bi-check-circle-fill me-1"></i> Assign & Activate Plan
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Description / Rationale -->
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-muted">AI Coaching Rationale & Strategy</label>
+                        <textarea name="description" id="planDescInput" rows="2" class="form-control small text-secondary"></textarea>
+                    </div>
+
+                    <!-- Dates Row -->
+                    <div class="row g-2 mb-4 bg-light p-3 rounded-3">
+                        <div class="col-sm-6">
+                            <label class="form-label fw-semibold small">Start Date</label>
+                            <input type="date" name="start_date" id="planStartDate" class="form-control form-control-sm" required>
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label fw-semibold small">End Date (Duration: 30 Days)</label>
+                            <input type="date" name="end_date" id="planEndDate" class="form-control form-control-sm" required>
+                        </div>
+                    </div>
+
+                    <!-- Days & Exercises Accordion/List -->
+                    <h6 class="fw-bold mb-3"><i class="bi bi-calendar3 me-2 text-danger"></i> Structured Workout Split</h6>
+                    <div id="splitDaysContainer">
+                        <!-- Populated by JavaScript -->
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
+                        <small class="text-muted"><i class="bi bi-info-circle me-1"></i> Member will receive an instant notification upon plan assignment.</small>
+                        <button type="submit" class="btn btn-success btn-lg fw-bold px-5 shadow-sm">
+                            <i class="bi bi-send-check-fill me-1"></i> Assign to Member
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function onMemberSelected(select) {
+        const option = select.options[select.selectedIndex];
+        const weight = option.getAttribute('data-weight');
+        const height = option.getAttribute('data-height');
+        
+        document.getElementById('dispWeight').textContent = weight + ' kg';
+        document.getElementById('dispHeight').textContent = height + ' cm';
+        
+        if (weight && height && parseFloat(height) > 0) {
+            const hM = parseFloat(height) / 100;
+            const bmi = (parseFloat(weight) / (hM * hM)).toFixed(1);
+            document.getElementById('dispBmi').textContent = bmi;
+        }
+    }
+
+    async function generateAiPlan() {
+        const memberSelect = document.getElementById('memberSelect');
+        const memberId = memberSelect.value;
+        if (!memberId) {
+            alert('Please select a member first.');
+            memberSelect.focus();
+            return;
+        }
+
+        const goal = document.getElementById('goalSelect').value;
+        const level = document.getElementById('levelSelect').value;
+        const days = document.getElementById('daysSelect').value;
+        const equip = document.getElementById('equipmentSelect').value;
+        const limitations = document.getElementById('limitationsInput').value;
+
+        // UI states
+        document.getElementById('emptyPlanState').classList.add('d-none');
+        document.getElementById('generatedPlanForm').classList.add('d-none');
+        document.getElementById('planLoadingState').classList.remove('d-none');
+
+        try {
+            const resp = await fetch('{{ url_for("trainer.api_generate_ai_workout") }}', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    member_id: parseInt(memberId),
+                    goal: goal,
+                    fitness_level: level,
+                    days_per_week: parseInt(days),
+                    equipment: equip,
+                    limitations: limitations
+                })
+            });
+
+            const data = await resp.json();
+            renderGeneratedPlan(data, memberId);
+        } catch (err) {
+            console.error('Error generating AI plan:', err);
+            alert('Failed to generate AI plan. Please check network/server logs.');
+        } finally {
+            document.getElementById('planLoadingState').classList.add('d-none');
+        }
+    }
+
+    function renderGeneratedPlan(data, memberId) {
+        document.getElementById('formMemberId').value = memberId;
+        document.getElementById('planTitleInput').value = data.plan_name;
+        document.getElementById('planDescInput').value = data.rationale;
+
+        // Date defaults: Today to +30 days
+        const today = new Date();
+        const endDate = new Date();
+        endDate.setDate(today.getDate() + 30);
+
+        document.getElementById('planStartDate').value = today.toISOString().split('T')[0];
+        document.getElementById('planEndDate').value = endDate.toISOString().split('T')[0];
+
+        const container = document.getElementById('splitDaysContainer');
+        container.innerHTML = '';
+
+        data.split.forEach((dayObj, dayIdx) => {
+            const dayCard = document.createElement('div');
+            dayCard.className = 'card bg-light border-0 rounded-4 p-3 mb-3';
+            
+            let exercisesHtml = '';
+            dayObj.exercises.forEach(ex => {
+                exercisesHtml += `
+                    <tr>
+                        <td class="fw-bold">
+                            ${ex.exercise_name}
+                            <input type="hidden" name="exercise_id[]" value="${ex.exercise_id}">
+                            <input type="hidden" name="day[]" value="${dayObj.day}">
+                            <small class="text-muted d-block">${ex.equipment}</small>
+                        </td>
+                        <td>
+                            <input type="number" name="sets[]" class="form-control form-control-sm" value="${ex.sets}" style="width: 70px;">
+                        </td>
+                        <td>
+                            <input type="text" name="reps[]" class="form-control form-control-sm" value="${ex.reps}" style="width: 80px;">
+                        </td>
+                        <td>
+                            <input type="text" name="weight[]" class="form-control form-control-sm" value="${ex.weight}" style="width: 100px;">
+                        </td>
+                        <td>
+                            <input type="number" name="rest_seconds[]" class="form-control form-control-sm" value="${ex.rest_seconds}" style="width: 75px;">
+                        </td>
+                    </tr>
+                `;
+            });
+
+            dayCard.innerHTML = `
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <h6 class="fw-bold text-danger m-0"><i class="bi bi-calendar-event me-1"></i> ${dayObj.day}</h6>
+                    <span class="badge bg-white text-dark border">${dayObj.exercises.length} Exercises</span>
+                </div>
+                <div class="table-responsive bg-white rounded-3 p-2 shadow-sm">
+                    <table class="table table-sm align-middle m-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Exercise</th>
+                                <th>Sets</th>
+                                <th>Reps</th>
+                                <th>Weight</th>
+                                <th>Rest (s)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${exercisesHtml}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            container.appendChild(dayCard);
+        });
+
+        document.getElementById('generatedPlanForm').classList.remove('d-none');
+    }
+
+    // Auto trigger if member was passed in query parameter
+    window.addEventListener('DOMContentLoaded', () => {
+        const select = document.getElementById('memberSelect');
+        if (select.value) {
+            onMemberSelected(select);
+        }
+    });
+</script>
+{% endblock %}
